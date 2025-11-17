@@ -51,7 +51,7 @@ client.once('ready', async () => {
   console.log('⏰ تم جدولة الأذكار كل 30 دقيقة');
   
   client.user.setPresence({
-    activities: [{ name: 'ᴅᴇᴠ ʙʏ ɢᴏᴛʜʀ', type: ActivityType.Listening }],
+    activities: [{ name: '📿 أذكار ', type: ActivityType.Listening }],
     status: 'idle'
   });
 });
@@ -138,4 +138,5 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.login(process.env.TOKEN);
+
 
