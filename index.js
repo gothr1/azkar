@@ -1,41 +1,44 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, REST, Routes, EmbedBuilder, ActivityType, Partials } = require('discord.js');
-const cron = require('node-cron');
+const { Client, GatewayIntentBits, REST, Routes, EmbedBuilder, ActivityType, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('fs');
 
-const DB_FILE = './guilds.json';
+const DB_FILE = './tasbeh_db.json';
 
-let db = {};
-try {
-  if (fs.existsSync(DB_FILE)) {
-    db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-  }
-} catch (error) {
-  db = {};
+// قاعدة البيانات
+let db = {
+  users: {},
+  messages: {}
+};
+
+// تحميل قاعدة البيانات
+if (fs.existsSync(DB_FILE)) {
+  db = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
 }
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
-  partials: [Partials.Channel],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
 });
 
+// الأوامر
 const commands = [
   {
-    name: 'setazkar',
-    description: 'تحديد قناة الأذكار',
-    options: [{
-      name: 'channel',
-      description: 'القناة',
-      type: 7,
-      required: true
-    }]
+    name: 'تسبيح',
+    description: 'بدء جلسة التسبيح'
   },
-  { name: 'azkarenable', description: 'تفعيل الأذكار' },
-  { name: 'azkardisable', description: 'إيقاف الأذكار' },
-  { name: 'azkaronce', description: 'اختبار إرسال ذكر' },
+  {
+    name: 'تصنيف',
+    description: 'عرض أفضل المسبحين'
+  },
+  {
+    name: 'تسبيحي',
+    description: 'عرض عدد تسبيحاتك'
+  }
 ];
 
-// ✅ حدث ready واحد فقط
 client.once('ready', async () => {
   console.log(`✅ ${client.user.tag} شغال!`);
   
@@ -47,102 +50,163 @@ client.once('ready', async () => {
     console.log('✅ الأوامر مسجلة (محلي)!');
   }
 
-  // ⏰ التعديل هنا - كل 30 دقيقة
-  cron.schedule('*/30 * * * *', sendHourlyAzkar, { timezone: 'Asia/Riyadh' });
-  console.log('⏰ تم جدولة الأذكار كل 30 دقيقة');
-  
-  // 🎥 الحالة (Streaming) - ضفتها هنا
   client.user.setPresence({
-    status: 'online',
     activities: [{
-      name: '📿 أذكار',
+      name: 'التسبيح والذكر 📿',
       type: ActivityType.Streaming,
-      url: 'https://www.twitch.tv/GOTHR'
+      url: 'https://www.twitch.tv/discord'
     }]
   });
-  
-  console.log('🎥 تم تعيين الحالة كـ Streaming');
 });
 
-async function sendHourlyAzkar() {
-  console.log('🕒 إرسال الأذكار التلقائية...');
-  
-  const azkarList = [
-    "سبحان الله والحمد لله ولا إله إلا الله والله أكبر.",
-    "اللهم اجعل هذا الوقت ساعة خير وبركة.",
-    "استغفر الله العظيم وأتوب إليه.",
-    "اللهم صل وسلم على نبينا محمد.",
-    "لا حول ولا قوة إلا بالله العلي العظيم.",
-    "سبحان الله وبحمده، سبحان الله العظيم.",
-    "حسبي الله لا إله إلا هو عليه توكلت وهو رب العرش العظيم.",
-    "اللهم إني أسألك علماً نافعاً، ورزقاً طيباً، وعملاً متقبلاً.",
-  ];
-  
-  const text = azkarList[Math.floor(Math.random() * azkarList.length)];
-  const embed = new EmbedBuilder()
-    .setTitle('أذكار 📿')
-    .setDescription(text)
-    .setColor('#5865F2')
-    .setTimestamp();
+// الأذكار المتاحة
+const azkarList = [
+  "سبحان الله",
+  "الحمد لله", 
+  "لا إله إلا الله",
+  "الله أكبر",
+  "أستغفر الله",
+  "لا حول ولا قوة إلا بالله",
+  "سبحان الله وبحمده",
+  "سبحان الله العظيم"
+];
 
-  let sentCount = 0;
-
-  for (const guildId in db) {
-    if (db[guildId]?.enabled) {
-      try {
-        const guild = client.guilds.cache.get(guildId);
-        const channel = guild?.channels.cache.get(db[guildId].channelId);
-        if (channel) {
-          await channel.send({ embeds: [embed] });
-          sentCount++;
-        }
-      } catch (e) {
-        console.log(`❌ خطأ في ${guildId}`);
-      }
-    }
-  }
-  
-  console.log(`✅ تم إرسال ${sentCount} ذكر`);
+// إنشاء أزرار التسبيح
+function createTasbehButtons() {
+  return new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('tasbeh_subhan')
+        .setLabel('سبحان الله')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId('tasbeh_alhamd')
+        .setLabel('الحمد لله')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId('tasbeh_allahuakbar')
+        .setLabel('الله أكبر')
+        .setStyle(ButtonStyle.Danger)
+    );
 }
 
-// التعامل مع الأوامر
+// معالجة الأوامر
 client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
-  
-  const { commandName, options, guild } = interaction;
-  if (!guild) return;
+  if (interaction.isChatInputCommand()) {
+    const { commandName, user } = interaction;
 
-  try {
-    if (commandName === 'setazkar') {
-      const channel = options.getChannel('channel');
-      db[guild.id] = { channelId: channel.id, enabled: true };
-      fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
-      return interaction.reply(`✅ تم تعيين ${channel} لقناة الأذكار`);
+    // تهيئة المستخدم إذا غير موجود
+    if (!db.users[user.id]) {
+      db.users[user.id] = {
+        username: user.username,
+        count: 0,
+        lastTasbeh: Date.now()
+      };
     }
 
-    if (commandName === 'azkarenable') {
-      db[guild.id] = { ...db[guild.id], enabled: true };
-      fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
-      return interaction.reply('✅ تم تفعيل الأذكار كل 30 دقيقة');
-    }
-
-    if (commandName === 'azkardisable') {
-      db[guild.id] = { ...db[guild.id], enabled: false };
-      fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
-      return interaction.reply('🛑 تم إيقاف الأذكار');
-    }
-
-    if (commandName === 'azkaronce') {
-      const azkar = ["اللهم اغفر لي وارحمني واهدني."];
+    if (commandName === 'تسبيح') {
       const embed = new EmbedBuilder()
-        .setTitle('📿 أذكار')
-        .setDescription(azkar[0])
-        .setColor('#5865F2');
-      return interaction.reply({ embeds: [embed] });
+        .setTitle('📿 جلسة التسبيح')
+        .setDescription('اختر نوع التسبيح:')
+        .addFields(
+          { name: '🎯 التعليمات', value: 'اضغط على الأزرار للتسبيح\nاستخدم `/تصنيف` لرؤية أفضل المسبحين' },
+          { name: '📊 تسبيحاتك', value: `لديك ${db.users[user.id].count} تسبيحة` }
+        )
+        .setColor('#5865F2')
+        .setTimestamp();
+
+      await interaction.reply({
+        embeds: [embed],
+        components: [createTasbehButtons()]
+      });
     }
-  } catch (error) {
-    interaction.reply({ content: '❌ حدث خطأ', ephemeral: true });
+
+    if (commandName === 'تصنيف') {
+      const topUsers = Object.entries(db.users)
+        .sort(([,a], [,b]) => b.count - a.count)
+        .slice(0, 10);
+
+      const leaderboard = topUsers.map(([userId, userData], index) => {
+        const member = interaction.guild?.members.cache.get(userId);
+        const username = member?.user.username || userData.username || 'unknown-user';
+        return `**${index + 1}.** ${username} - **${userData.count}** تسبيحة`;
+      }).join('\n');
+
+      const embed = new EmbedBuilder()
+        .setTitle('🏆 أفضل المسبحين')
+        .setDescription(leaderboard || 'لا توجد تسبيحات بعد')
+        .setColor('#F1C40F')
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed], ephemeral: true });
+    }
+
+    if (commandName === 'تسبيحي') {
+      const userData = db.users[user.id];
+      const embed = new EmbedBuilder()
+        .setTitle('📊 إحصائياتك')
+        .setDescription(`**${user.username}** لديك **${userData.count}** تسبيحة`)
+        .setColor('#00FF00')
+        .setTimestamp();
+
+      await interaction.reply({ embeds: [embed], ephemeral: true });
+    }
+
+    // حفظ قاعدة البيانات
+    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+  }
+
+  // معالجة أزرار التسبيح
+  if (interaction.isButton()) {
+    const { customId, user } = interaction;
+
+    if (!db.users[user.id]) {
+      db.users[user.id] = {
+        username: user.username,
+        count: 0,
+        lastTasbeh: Date.now()
+      };
+    }
+
+    // زيادة العداد
+    db.users[user.id].count++;
+    db.users[user.id].lastTasbeh = Date.now();
+
+    const tasbehMessages = {
+      'tasbeh_subhan': 'سبحان الله ✅',
+      'tasbeh_alhamd': 'الحمد لله ✅', 
+      'tasbeh_allahuakbar': 'الله أكبر ✅'
+    };
+
+    await interaction.reply({
+      content: `${tasbehMessages[customId]}\n**${user.username}** الآن لديك **${db.users[user.id].count}** تسبيحة`,
+      ephemeral: true
+    });
+
+    // حفظ قاعدة البيانات
+    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
   }
 });
+
+// إرسال تذكير تلقائي كل ساعة
+setInterval(() => {
+  const randomZekr = azkarList[Math.floor(Math.random() * azkarList.length)];
+  
+  client.guilds.cache.forEach(guild => {
+    const generalChannel = guild.channels.cache.find(channel => 
+      channel.type === 0 && channel.permissionsFor(guild.members.me).has('SendMessages')
+    );
+    
+    if (generalChannel) {
+      const embed = new EmbedBuilder()
+        .setTitle('🕰 تذكير التسبيح')
+        .setDescription(`**${randomZekr}**\n\nاستخدم \`/تسبيح\` لبدء التسبيح!`)
+        .setColor('#E74C3C')
+        .setTimestamp();
+      
+      generalChannel.send({ embeds: [embed] }).catch(console.error);
+    }
+  });
+}, 60 * 60 * 1000); // كل ساعة
 
 client.login(process.env.TOKEN);
