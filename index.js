@@ -35,6 +35,7 @@ const commands = [
   { name: 'azkaronce', description: 'اختبار إرسال ذكر' },
 ];
 
+// ✅ حدث ready واحد فقط
 client.once('ready', async () => {
   console.log(`✅ ${client.user.tag} شغال!`);
   
@@ -50,21 +51,17 @@ client.once('ready', async () => {
   cron.schedule('*/30 * * * *', sendHourlyAzkar, { timezone: 'Asia/Riyadh' });
   console.log('⏰ تم جدولة الأذكار كل 30 دقيقة');
   
-}
-
-// ✅ الحدث الصحيح في Discord.js v15
-client.once('clientReady', () => {
-  console.log(`✅ تم تسجيل الدخول باسم ${client.user.tag}`);
-
-  // الحالة (Streaming)
+  // 🎥 الحالة (Streaming) - ضفتها هنا
   client.user.setPresence({
     status: 'online',
     activities: [{
-      name: '📿 أذكار ',
+      name: '📿 أذكار',
       type: ActivityType.Streaming,
       url: 'https://www.twitch.tv/GOTHR'
     }]
   });
+  
+  console.log('🎥 تم تعيين الحالة كـ Streaming');
 });
 
 async function sendHourlyAzkar() {
@@ -79,12 +76,11 @@ async function sendHourlyAzkar() {
     "سبحان الله وبحمده، سبحان الله العظيم.",
     "حسبي الله لا إله إلا هو عليه توكلت وهو رب العرش العظيم.",
     "اللهم إني أسألك علماً نافعاً، ورزقاً طيباً، وعملاً متقبلاً.",
-    
   ];
   
   const text = azkarList[Math.floor(Math.random() * azkarList.length)];
   const embed = new EmbedBuilder()
-    .setTitle('أذكار 📿  ')
+    .setTitle('أذكار 📿')
     .setDescription(text)
     .setColor('#5865F2')
     .setTimestamp();
@@ -109,7 +105,7 @@ async function sendHourlyAzkar() {
   console.log(`✅ تم إرسال ${sentCount} ذكر`);
 }
 
-// باقي الكود يبقى كما هو...
+// التعامل مع الأوامر
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
   
@@ -150,6 +146,3 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.login(process.env.TOKEN);
-
-
-
