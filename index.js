@@ -50,9 +50,20 @@ client.once('ready', async () => {
   cron.schedule('*/30 * * * *', sendHourlyAzkar, { timezone: 'Asia/Riyadh' });
   console.log('⏰ تم جدولة الأذكار كل 30 دقيقة');
   
+}
+
+// ✅ الحدث الصحيح في Discord.js v15
+client.once('clientReady', () => {
+  console.log(`✅ تم تسجيل الدخول باسم ${client.user.tag}`);
+
+  // الحالة (Streaming)
   client.user.setPresence({
-    activities: [{ name: '📿 أذكار ', type: ActivityType.Listening }],
-    status: 'idle'
+    status: 'online',
+    activities: [{
+      name: '📿 أذكار ',
+      type: ActivityType.Streaming,
+      url: 'https://www.twitch.tv/GOTHR'
+    }]
   });
 });
 
@@ -67,12 +78,13 @@ async function sendHourlyAzkar() {
     "لا حول ولا قوة إلا بالله العلي العظيم.",
     "سبحان الله وبحمده، سبحان الله العظيم.",
     "حسبي الله لا إله إلا هو عليه توكلت وهو رب العرش العظيم.",
-    "اللهم إني أسألك علماً نافعاً، ورزقاً طيباً، وعملاً متقبلاً."
+    "اللهم إني أسألك علماً نافعاً، ورزقاً طيباً، وعملاً متقبلاً.",
+    
   ];
   
   const text = azkarList[Math.floor(Math.random() * azkarList.length)];
   const embed = new EmbedBuilder()
-    .setTitle('📿 أذكار نصف الساعة')
+    .setTitle('أذكار 📿  ')
     .setDescription(text)
     .setColor('#5865F2')
     .setTimestamp();
@@ -138,5 +150,6 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.login(process.env.TOKEN);
+
 
 
